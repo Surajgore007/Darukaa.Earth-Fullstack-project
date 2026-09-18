@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes.analytics import router as analytics_router
@@ -18,6 +18,17 @@ app.add_middleware(
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(projects_router, prefix="/api/v1")
 app.include_router(analytics_router, prefix="/api/v1")
+
+
+@app.get("/")
+def root_status() -> dict[str, str]:
+    return {
+        "service": "Darukaa Earth API",
+        "status": "online",
+        "version": "0.1.0",
+        "docs": "/docs",
+        "health": "/health",
+    }
 
 
 @app.get("/health")
