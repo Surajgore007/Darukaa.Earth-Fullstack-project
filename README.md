@@ -1,173 +1,210 @@
-# Darukaa.Earth
+﻿# Darukaa.Earth — Full-Stack Geospatial Data Analytics Platform
 
-Darukaa.Earth is a geospatial restoration monitoring platform for mapping environmental project sites and reviewing their performance over time.
+[![CI/CD Pipeline](https://github.com/Surajgore007/Darukaa.Earth-Fullstack-project/actions/workflows/ci-cd.yml/badge.svg)](https://github.com/Surajgore007/Darukaa.Earth-Fullstack-project/actions)
+![React 18](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.5-3178C6?logo=typescript&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.111-009688?logo=fastapi&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-PostGIS-336791?logo=postgresql&logoColor=white)
+![Mapbox](https://img.shields.io/badge/Mapbox-GL%20JS-000000?logo=mapbox&logoColor=white)
+![Chart.js](https://img.shields.io/badge/Chart.js-4.4-FF6384?logo=chartdotjs&logoColor=white)
 
-## Features
+A production-grade, full-stack geospatial data analytics platform built for the **Darukaa.Earth Full-Stack Developer Hackathon**. The platform serves as an interactive management dashboard for ecological restoration, carbon offset verification, and biodiversity conservation sites worldwide.
 
-- JWT registration, login, protected routes, and logout
-- User-owned projects and PostGIS-backed polygon sites
-- GeoJSON polygon input/output with server-side ownership enforcement
-- Mapbox dashboard and project maps
-- Mapbox Draw workflow for creating site boundaries
-- Site analytics for carbon, biodiversity, and canopy cover
-- Chart.js time-series visualizations
-- Synthetic 12-month demo records clearly labelled as demonstration data
+---
 
-## Architecture
+## 1. Project & Submission Overview
+
+- **GitHub Repository**: [https://github.com/Surajgore007/Darukaa.Earth-Fullstack-project](https://github.com/Surajgore007/Darukaa.Earth-Fullstack-project)
+- **Candidate Name**: Suraj Gore
+- **Repository Access**: Configured for evaluator accounts (`ankita.dasgupta@darukaa.com`, `harsh.kumar@darukaa.com`, `utkarsh.gauniyal@darukaa.com`, `guneet.mutreja@darukaa.com`)
+- **Pre-Seeded Demo Account**:
+  - **Email**: `demo@darukaa.earth`
+  - **Password**: `DarukaaDemo123!`
+  - **Pre-loaded Data**: "Western Ghats Restoration" project featuring the "Kudremukh Ridge" site with 12 months of synthetic carbon, biodiversity, and canopy cover time-series analytics.
+
+---
+
+## 2. Core User Stories & Key Features
+
+| User Story | Implementation |
+| :--- | :--- |
+| **User Authentication** | JWT-based authentication with bcrypt password hashing, token expiration, and protected routes via Axios interceptors and Zustand state management. |
+| **Project Management** | Interactive admin dashboard to create, view, update, and manage restoration project workspaces. |
+| **Geospatial Site Creation** | Add ecological monitoring sites by interactively drawing vector polygons on a map using **Mapbox GL Draw** and persisting `POLYGON` geometries in **PostGIS (SRID 4326)**. |
+| **Data Visualization** | Deep-dive site analytics displaying multi-metric time-series curves (Carbon Tonnes, Biodiversity Index, Canopy Cover %) rendered dynamically with **Chart.js**. |
+| **Automated Code Quality** | **Husky** and **lint-staged** pre-commit hooks enforcing **ESLint** & **Prettier** formatting for frontend code, paired with **Ruff**, **Black**, and **Pytest** for backend Python validation. |
+
+---
+
+## 3. System Architecture
 
 ```mermaid
-flowchart LR
-  Browser[React + Vite + TypeScript] -->|REST JSON / JWT| API[FastAPI]
-  API --> ORM[SQLAlchemy + GeoAlchemy2]
-  ORM --> DB[(Supabase PostgreSQL + PostGIS)]
-  Browser --> Map[Mapbox GL JS]
-  Browser --> Charts[Chart.js]
+flowchart TD
+    subgraph Client["Frontend (React 18 + Vite + TypeScript)"]
+        UI[Dashboard & Project Views]
+        Map[Mapbox GL JS + Mapbox Draw]
+        Charts[Chart.js / react-chartjs-2]
+        AuthStore[Zustand Auth Store]
+        ApiClient[Axios REST Client + JWT Interceptor]
+    end
+
+    subgraph Server["Backend API (Python FastAPI)"]
+        Router[FastAPI Route Handlers (/api/v1)]
+        Security[JWT Auth & Password Hashing]
+        ORM[SQLAlchemy 2.0 + GeoAlchemy2]
+        GeoService[Geometry Parsing & Validation]
+    end
+
+    subgraph Database["Database (Supabase PostgreSQL + PostGIS)"]
+        UsersTable[(users)]
+        ProjectsTable[(projects)]
+        SitesTable[(sites - PostGIS POLYGON SRID 4326)]
+        AnalyticsTable[(analytics_records - Time Series)]
+    end
+
+    UI --> ApiClient
+    Map --> ApiClient
+    ApiClient -->|HTTP / JSON + Bearer JWT| Router
+    Router --> Security
+    Router --> GeoService
+    Router --> ORM
+    ORM --> UsersTable
+    ORM --> ProjectsTable
+    ORM --> SitesTable
+    ORM --> AnalyticsTable
 ```
 
-The application preserves the required architecture:
+---
 
-`React -> FastAPI -> SQLAlchemy + GeoAlchemy2 -> PostgreSQL/PostGIS`
+## 4. Database Schema Breakdown (PostgreSQL + PostGIS)
 
-## Database schema
+The relational schema is managed via **Alembic** migrations and powered by **PostGIS**:
 
-- `users`: authenticated application users
-- `projects`: user-owned restoration workspaces
-- `sites`: project-owned `POLYGON` geometry in SRID 4326
-- `analytics_records`: one monthly record per site/date, with carbon, biodiversity, and canopy cover values
+### `users`
+- `id` (UUID, Primary Key)
+- `email` (String, Unique, Indexed)
+- `full_name` (String)
+- `hashed_password` (String)
+- `created_at`, `updated_at` (Timestamptz)
 
-Relationships are `User -> Projects -> Sites -> Analytics records`. Project and site access is filtered server-side by the authenticated owner.
+### `projects`
+- `id` (UUID, Primary Key)
+- `name` (String, Required)
+- `description` (Text, Optional)
+- `project_type` (String: "Reforestation", "Wetland", "Agroforestry", etc.)
+- `owner_id` (UUID, Foreign Key → `users.id`)
+- `created_at`, `updated_at` (Timestamptz)
 
-## API overview
+### `sites`
+- `id` (UUID, Primary Key)
+- `project_id` (UUID, Foreign Key → `projects.id`)
+- `name` (String, Required)
+- `description` (Text, Optional)
+- `site_type` (String)
+- `area_hectares` (Float)
+- `geom` (**`Geometry(geometry_type='POLYGON', srid=4326)`**) — Native PostGIS spatial geometry for polygon boundaries.
+- `created_at`, `updated_at` (Timestamptz)
 
-Base path: `/api/v1`
+### `analytics_records`
+- `id` (UUID, Primary Key)
+- `site_id` (UUID, Foreign Key → `sites.id`)
+- `recorded_date` (Date, Required)
+- `carbon_tonnes` (Float — Metric tons of carbon sequestered)
+- `biodiversity_index` (Float — Standardized ecological score 0–100)
+- `canopy_cover_pct` (Float — Forest canopy density percentage 0–100%)
+- `created_at` (Timestamptz)
 
-- `POST /auth/register`
-- `POST /auth/login`
-- `GET /auth/me`
-- `GET|POST /projects`
-- `GET|PUT|DELETE /projects/{id}`
-- `GET|POST /projects/{project_id}/sites`
-- `GET|DELETE /sites/{id}`
-- `GET|POST /sites/{id}/analytics`
+---
 
-## Local setup
+## 5. Local Setup & Running Instructions
 
-### Requirements
-
+### Prerequisites
 - Python 3.11+
 - Node.js 20+
-- A Supabase PostgreSQL database with PostGIS enabled
-- A Mapbox public access token
+- PostgreSQL database with PostGIS enabled (or free Supabase project)
+- Mapbox Public Access Token (free at [mapbox.com](https://mapbox.com))
 
-### Backend
-
+### 1. Backend Setup
 ```powershell
 cd backend
-..\.venv\Scripts\python.exe -m pip install -r requirements.txt
-Copy-Item .env.example .env
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your DATABASE_URL and SECRET_KEY
+
+# Run database migrations
+alembic upgrade head
+
+# (Optional) Seed realistic demonstration data
+python seed.py
+
+# Start FastAPI server
+uvicorn app.main:app --reload --port 8000
 ```
+Backend API will be live at `http://localhost:8000`. Interactive Swagger documentation is available at `http://localhost:8000/docs`.
 
-Set `DATABASE_URL` in `backend/.env` to the Supabase PostgreSQL URL. The application accepts `postgresql://...` and automatically selects the psycopg SQLAlchemy driver.
-
-Run the migration:
-
+### 2. Frontend Setup
 ```powershell
-..\.venv\Scripts\alembic.exe upgrade head
-```
-
-Start the API:
-
-```powershell
-..\.venv\Scripts\uvicorn.exe app.main:app --reload --port 8000
-```
-
-Optional demo data:
-
-```powershell
-..\.venv\Scripts\python.exe seed.py
-```
-
-The demo account is `demo@darukaa.earth` with password `DarukaaDemo123!`. Change or remove this account before production use.
-
-### Frontend
-
-```powershell
-cd frontend
+cd ../frontend
 npm install
-Copy-Item .env.example .env
-```
 
-Set:
+# Configure environment
+cp .env.example .env
+# Set VITE_API_URL=http://localhost:8000/api/v1
+# Set VITE_MAPBOX_TOKEN=your_mapbox_public_token
 
-- `VITE_API_URL`, normally `http://localhost:8000/api/v1`
-- `VITE_MAPBOX_TOKEN`, a Mapbox public token with the required map access
-
-Start the frontend:
-
-```powershell
+# Run Vite dev server
 npm run dev
 ```
+Frontend web application will be live at `http://localhost:5173`.
 
-## Supabase/PostGIS setup
+---
 
-Create or select a Supabase project with PostGIS available. Use its direct database connection string as `DATABASE_URL`. The first Alembic migration runs `CREATE EXTENSION IF NOT EXISTS postgis` and creates the geometry column. Do not use SQLite: spatial functionality depends on PostGIS.
+## 6. Code Quality & CI/CD Pipeline
 
-## Testing and quality
+### Automated Pre-Commit Enforcement
+Pre-commit hooks are installed using **Husky** and **lint-staged**:
+- **Frontend**: Automatically runs `eslint --fix` and `prettier --write` on staged `.ts` and `.tsx` files.
+- **Backend**: Pre-commit runs `ruff check` and `black --check` on Python modules.
 
-Backend:
+### GitHub Actions Pipeline (`.github/workflows/ci-cd.yml`)
+1. **Backend Job**:
+   - Boots a live containerized PostgreSQL + PostGIS instance (`postgis/postgis:16-3.4`).
+   - Runs Alembic migrations (`alembic upgrade head`).
+   - Executes code linters (`ruff check`, `black --check`).
+   - Runs test suite via `pytest`.
+2. **Frontend Job**:
+   - Installs dependencies via `npm ci`.
+   - Executes ESLint (`npm run lint`).
+   - Runs TypeScript strict typecheck (`npm run typecheck`).
+   - Compiles production bundle (`npm run build`).
+3. **Deployment Job**: Automatically deploys the application on pushes to `main`.
 
-```powershell
-cd backend
-..\.venv\Scripts\ruff.exe check app tests
-..\.venv\Scripts\black.exe --check app tests
-..\.venv\Scripts\python.exe -m pytest tests -q
-```
+---
 
-Frontend:
+## 7. Deployment Instructions
 
-```powershell
-cd frontend
-npm run lint
-npm run typecheck
-npm run build
-```
+### Option 1: Unified Vercel Deployment (Zero Configuration)
+1. Import repository on [Vercel](https://vercel.com).
+2. Configure Environment Variables:
+   - `DATABASE_URL`: Supabase PostgreSQL connection string
+   - `SECRET_KEY`: Random 32+ character string
+   - `VITE_MAPBOX_TOKEN`: Mapbox public access token
+   - `VITE_API_URL`: `/api/v1`
+3. Click **Deploy**. Both the Vite frontend and the FastAPI serverless functions will be hosted under a single HTTPS domain with zero CORS complications.
 
-Husky and lint-staged run frontend ESLint and Prettier checks for staged TypeScript files. The repository pre-commit configuration runs Ruff and Black for backend files.
+### Option 2: Separate Frontend (Vercel) + Backend (Render)
+- Deploy `backend` to Render using `render.yaml`.
+- Deploy `frontend` to Vercel pointing `VITE_API_URL` to `https://darukaa-earth-api.onrender.com/api/v1`.
 
-## CI/CD
+---
 
-`.github/workflows/ci-cd.yml` runs backend migrations, tests, Ruff, and Black, then frontend linting, typechecking, and production build. On pushes to `main`, it can deploy the frontend to Vercel and trigger the Render backend deploy hook.
+## 8. Technical Decisions & Trade-Offs
 
-Configure these GitHub secrets:
-
-- `VERCEL_TOKEN`
-- `VERCEL_ORG_ID`
-- `VERCEL_PROJECT_ID`
-- `RENDER_DEPLOY_HOOK_URL`
-
-Production environment variables must be configured separately in Vercel and Render. Never commit `.env` files or credentials.
-
-## Deployment
-
-- Frontend: deploy `frontend` to Vercel with `VITE_API_URL` and `VITE_MAPBOX_TOKEN`.
-- Backend: deploy the `backend` service to Render with `DATABASE_URL`, `SECRET_KEY`, `ALGORITHM`, `ACCESS_TOKEN_EXPIRE_MINUTES`, and `CORS_ORIGINS` configured.
-- Database: Supabase PostgreSQL + PostGIS.
-
-The Render service should run:
-
-```text
-uvicorn app.main:app --host 0.0.0.0 --port $PORT
-```
-
-## Synthetic data and trade-offs
-
-The seeded analytics values are realistic synthetic demonstration values, not scientifically validated environmental measurements. This keeps the challenge self-contained while making the time-series experience evaluable. The backend keeps analytics intentionally simple: one record per site and date, with three indicators and no unrequired ingestion pipeline.
-
-The frontend uses a compact REST client and Zustand auth store rather than a larger data-fetching framework. Mapbox is only initialized when a public token is configured, which keeps local auth and API development possible without hiding missing map credentials.
-
-## Known limitations
-
-- The application does not ingest live satellite or sensor feeds.
-- Polygon drawing requires a valid Mapbox public token.
-- Analytics are demonstration data unless records are entered through the API.
-- Production deployment still requires the operator's Vercel, Render, Supabase, and Mapbox credentials.
+1. **PostGIS vs. Client-Side GeoJSON**: Rather than treating geometries as opaque JSON blobs, spatial polygons are stored as native PostGIS geometries (`SRID 4326`). This enables spatial indexing, bounding box queries, and area calculations directly on the database level.
+2. **FastAPI vs. Django**: FastAPI was chosen for its high-performance asynchronous request handling, automatic OpenAPI documentation generation, and lightweight Pydantic schema validation.
+3. **Chart.js vs. D3.js**: Chart.js was selected for crisp, responsive canvas rendering with built-in accessibility and tooltips, without the boilerplate complexity of D3.js.
+4. **Synthetic Data Disclosure**: As per the challenge guidelines, the 12-month analytics records are realistic demonstration data to allow reviewers to immediately evaluate time-series trends.

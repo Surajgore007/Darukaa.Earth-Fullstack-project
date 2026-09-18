@@ -1,0 +1,6 @@
+﻿.git
+.github
+.husky
+.venv
+frontend/node_modules
+*.docx
