@@ -14,9 +14,17 @@ A production-grade, full-stack geospatial data analytics platform built for the 
 
 ## 1. Project & Submission Overview
 
+- **Live Web Application (Frontend)**: [https://darukaa-earth-fullstack-project.vercel.app](https://darukaa-earth-fullstack-project.vercel.app)
+- **Live REST API (Backend)**: [https://darukaa-earth-api-amber.vercel.app](https://darukaa-earth-api-amber.vercel.app)
+- **Interactive API Documentation (Swagger)**: [https://darukaa-earth-api-amber.vercel.app/docs](https://darukaa-earth-api-amber.vercel.app/docs)
+- **API Health Check**: [https://darukaa-earth-api-amber.vercel.app/health](https://darukaa-earth-api-amber.vercel.app/health)
 - **GitHub Repository**: [https://github.com/Surajgore007/Darukaa.Earth-Fullstack-project](https://github.com/Surajgore007/Darukaa.Earth-Fullstack-project)
 - **Candidate Name**: Suraj Gore
-- **Repository Access**: Configured for evaluator accounts (`ankita.dasgupta@darukaa.com`, `harsh.kumar@darukaa.com`, `utkarsh.gauniyal@darukaa.com`, `guneet.mutreja@darukaa.com`)
+- **Repository Access**: Public repository (directly accessible without invitations); evaluator permissions also configured for:
+  - `ankita.dasgupta@darukaa.com`
+  - `harsh.kumar@darukaa.com`
+  - `utkarsh.gauniyal@darukaa.com`
+  - `guneet.mutreja@darukaa.com`
 - **Pre-Seeded Demo Account**:
   - **Email**: `demo@darukaa.earth`
   - **Password**: `DarukaaDemo123!`
